@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { firestore } from '../../../firebaseConfig';
 import { useUser } from '../../contexts/UserContext';
+import { useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import CalendarModal from '../../components/CalendarModal';
 
 const CreateActivity = () => {
     const navigation = useNavigation();
+    const route = useRoute();
     const [titulo, setTitulo] = useState('');
     const [descricao, setDescricao] = useState('');
     const [data, setData] = useState('');
@@ -26,8 +29,9 @@ const CreateActivity = () => {
         setData(dateSelected);
     };
 
+    // Dentro de CreateActivity
+
     const handleCreateActivity = async () => {
-        const firestore = getFirestore();
         try {
             await addDoc(collection(firestore, `empresas/${user.empresaId}/atividades`), {
                 titulo,
@@ -35,18 +39,36 @@ const CreateActivity = () => {
                 data,
                 responsavel,
                 status: 'Agendada',
+                createdAt: serverTimestamp()
             });
-            setAlertVisible(true); // Exibir modal de sucesso
+            setAlertVisible(true);
+
             // Limpar campos após a criação
             setTitulo('');
             setDescricao('');
             setData('');
             setResponsavel('');
+
+            await addDoc(collection(firestore, `empresas/${user.empresaId}/notificacoes`), {
+                isRead: false,
+                mensagem: `Atividade criada com o titulo: ${titulo}, responsável: ${responsavelName}`,
+                titulo: "Nova atividade!",
+                createdAt: serverTimestamp()
+            });
+
+            // Chama o callback passado em route.params
+            if (route.params?.onGoBack) {
+                route.params.onGoBack(); // Atualiza atividades
+            }
+
+            // Retorna à tela anterior
+            navigation.goBack();
         } catch (error) {
             console.error("Erro ao criar atividade: ", error);
-            setAlertVisible(true); // Exibir modal de erro
+            setAlertVisible(true);
         }
     };
+
 
     return (
         <View style={styles.container}>

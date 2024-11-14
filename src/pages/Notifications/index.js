@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigation } from "@react-navigation/native";
-import { View, Text, Button, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import { collection, getDocs, query, where, orderBy, updateDoc, doc } from 'firebase/firestore';
 import { firestore } from '../../../firebaseConfig';
 import { useUser } from '../../contexts/UserContext';
 import Icon from "react-native-vector-icons/FontAwesome";
-
 
 const db = firestore;
 
@@ -15,11 +14,8 @@ const NotificationScreen = () => {
     const [filter, setFilter] = useState(null); // 'todas', 'lidas', 'naoLidas'
     const navigation = useNavigation();
 
-    useEffect(() => {
-        loadNotifications(filter);
-    }, [filter]);
-
-    const loadNotifications = async (status = null) => {
+    // Função para carregar notificações com o filtro aplicado
+    const loadNotifications = useCallback(async (status = null) => {
         try {
             const notificationsRef = collection(db, `empresas/${user.empresaId}/notificacoes`);
             let q = query(notificationsRef);
@@ -39,7 +35,14 @@ const NotificationScreen = () => {
         } catch (error) {
             console.error("Erro ao buscar notificações:", error);
         }
-    };
+    }, [user.empresaId]);
+
+    // useFocusEffect para recarregar notificações ao entrar em foco
+    useFocusEffect(
+        useCallback(() => {
+            loadNotifications(filter);
+        }, [filter, loadNotifications])
+    );
 
     const handleMarkAsRead = async (notificationId, isRead) => {
         try {

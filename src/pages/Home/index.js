@@ -166,29 +166,23 @@ export default function Home() {
         <View style={styles.opcoesGerais}>
           <Text style={styles.title}>Opções gerais</Text>
           <View style={styles.iconRow}>
-            <TouchableOpacity style={styles.iconContainer}>
+            <TouchableOpacity style={styles.iconContainer} onPress={() => navigation.navigate('Atividades')}>
               <View style={[styles.iconBackground, { backgroundColor: '#FF8743' }]} >
                 <Icon name="wrench" size={24} color="#fff" />
               </View>
-              <Text style={styles.iconText}>Revisões Agendadas</Text>
+              <Text style={styles.iconText}>Atividades</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconContainer}>
+            <TouchableOpacity style={styles.iconContainer} onPress={() => navigation.navigate('Notificacoes')}>
               <View style={[styles.iconBackground, { backgroundColor: '#2ECC71' }]} >
-                <Icon name="gears" size={24} color="#fff" />
+                <Icon name="bell" size={24} color="#fff" />
               </View>
-              <Text style={styles.iconText}>Manutenções Realizadas</Text>
+              <Text style={styles.iconText}>Notificações</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconContainer}>
+            <TouchableOpacity style={styles.iconContainer} onPress={() => navigation.navigate('Perfil')}>
               <View style={[styles.iconBackground, { backgroundColor: '#F4D03F' }]} >
-                <Icon name="bell" size={24} color="#FFF" />
+                <Icon name="user" size={24} color="#FFF" />
               </View>
-              <Text style={styles.iconText}>Notificar Setor</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconContainer}>
-              <View style={[styles.iconBackground, { backgroundColor: '#5DADE2' }]} >
-                <Icon name="ellipsis-h" size={24} color="#fff" />
-              </View>
-              <Text style={styles.iconText}>Mais Opções</Text>
+              <Text style={styles.iconText}>Meu perfil</Text>
             </TouchableOpacity>
           </View>
         </View>

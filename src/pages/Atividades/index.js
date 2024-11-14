@@ -17,44 +17,51 @@ const Atividades = () => {
     const [editedActivity, setEditedActivity] = useState({}); // Dados da atividade editada
 
     useEffect(() => {
-        const fetchActivities = async () => {
-            const firestore = getFirestore();
-            try {
-                const q = query(
-                    collection(firestore, `empresas/${user.empresaId}/atividades`)
-                );
-                const querySnapshot = await getDocs(q);
-                const activitiesData = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setActivities(activitiesData);
-                await fetchResponsaveis(activitiesData);
-            } catch (error) {
-                console.error("Erro ao buscar atividades: ", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        const fetchResponsaveis = async (activitiesData) => {
-            const firestore = getFirestore();
-            const responsaveisData = {};
-            for (const activity of activitiesData) {
-                if (activity.responsavel) {
-                    const responsavelDoc = await getDoc(doc(firestore, "users", activity.responsavel));
-                    if (responsavelDoc.exists()) {
-                        responsaveisData[activity.responsavel] = responsavelDoc.data().nome;
-                    }
-                }
-            }
-            setResponsaveis(responsaveisData);
-        };
-
         if (user?.empresaId) {
             fetchActivities();
         }
     }, []);
+
+    const fetchResponsaveis = async (activitiesData) => {
+        const firestore = getFirestore();
+        const responsaveisData = {};
+        for (const activity of activitiesData) {
+            if (activity.responsavel) {
+                const responsavelDoc = await getDoc(doc(firestore, "users", activity.responsavel));
+                if (responsavelDoc.exists()) {
+                    responsaveisData[activity.responsavel] = responsavelDoc.data().nome;
+                }
+            }
+        }
+        setResponsaveis(responsaveisData);
+    };
+
+    const fetchActivities = async () => {
+        const firestore = getFirestore();
+        try {
+            const q = query(
+                collection(firestore, `empresas/${user.empresaId}/atividades`)
+            );
+            const querySnapshot = await getDocs(q);
+            const activitiesData = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setActivities(activitiesData);
+            await fetchResponsaveis(activitiesData);
+        } catch (error) {
+            console.error("Erro ao buscar atividades: ", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const refreshActivities = async () => {
+        setLoading(true);
+        // Recarrega as atividades
+        await fetchActivities();
+        setLoading(false);
+    };
 
     const openEditModal = (activity) => {
         setEditedActivity(activity);
@@ -142,107 +149,111 @@ const Atividades = () => {
                     <Icon name="arrow-left" size={24} color="#FFF" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Atividades</Text>
-                <TouchableOpacity onPress={() => navigation.navigate("CriarAtividades")}>
-                    <Icon name="plus" size={24} color="#FFF" />
-                </TouchableOpacity>
-            </View>
-
-            {/* Filtros */}
-            <View style={styles.filters}>
-                {["Todas", "Agendada", "Concluída"].map(status => {
-                    let iconName;
-                    switch (status) {
-                        case "Todas":
-                            iconName = "playlist-check";
-                            break;
-                        case "Agendada":
-                            iconName = "calendar-check";
-                            break;
-                        case "Concluída":
-                            iconName = "check-circle-outline";
-                            break;
-                        default:
-                            iconName = "help-circle";
-                    }
-
-                    return (
-                        <TouchableOpacity
-                            key={status}
-                            style={[styles.filterButton, filter === status && styles.activeFilterButton]}
-                            onPress={() => setFilter(status)}
-                        >
-                            <Icon name={iconName} size={24} color="#FFF" />
-                            <Text style={styles.filterText}>{status}</Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-
-            {loading ? (
-                <ActivityIndicator size="large" color="#FFF" />
-            ) : (
-                <FlatList
-                    data={filteredActivities}
-                    renderItem={renderActivity}
-                    keyExtractor={item => item.id}
-                />
-            )}
-
-            {/* Modal de edição */}
-            <Modal
-                visible={isModalVisible}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={() => setIsModalVisible(false)}
-            >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Editar Atividade</Text>
-
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Título"
-                            placeholderTextColor="#999"
-                            value={editedActivity.titulo}
-                            onChangeText={(text) => setEditedActivity({ ...editedActivity, titulo: text })}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Data"
-                            placeholderTextColor="#999"
-                            value={editedActivity.data}
-                            onChangeText={(text) => setEditedActivity({ ...editedActivity, data: text })}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Descrição"
-                            placeholderTextColor="#999"
-                            value={editedActivity.descricao}
-                            onChangeText={(text) => setEditedActivity({ ...editedActivity, descricao: text })}
-                        />
-
-                        {/* Verifica se a atividade é agendada */}
-                        {editedActivity.status === 'Agendada' && (
-                            <TouchableOpacity style={styles.completeButton} onPress={markAsCompleted}>
-                                <Text style={styles.completeButtonText}>Marcar como Concluída</Text>
-                            </TouchableOpacity>
-                        )}
-
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity style={styles.saveButton} onPress={saveEditedActivity}>
-                                <Text style={styles.saveButtonText}>Salvar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsModalVisible(false)}>
-                                <Text style={styles.cancelButtonText}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.deleteButton} onPress={deleteActivity}>
-                                <Text style={styles.deleteButtonText}>Excluir Atividade</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+                <TouchableOpacity onPress={() => navigation.navigate('CriarAtividades', {
+                    onGoBack: () => fetchActivities() // função para atualizar atividades
+                })}>
+                <Icon name="plus" size={24} color="#FFF" />
+            </TouchableOpacity>
         </View>
+
+            {/* Filtros */ }
+    <View style={styles.filters}>
+        {["Todas", "Agendada", "Concluída"].map(status => {
+            let iconName;
+            switch (status) {
+                case "Todas":
+                    iconName = "playlist-check";
+                    break;
+                case "Agendada":
+                    iconName = "calendar-check";
+                    break;
+                case "Concluída":
+                    iconName = "check-circle-outline";
+                    break;
+                default:
+                    iconName = "help-circle";
+            }
+
+            return (
+                <TouchableOpacity
+                    key={status}
+                    style={[styles.filterButton, filter === status && styles.activeFilterButton]}
+                    onPress={() => setFilter(status)}
+                >
+                    <Icon name={iconName} size={24} color="#FFF" />
+                    <Text style={styles.filterText}>{status}</Text>
+                </TouchableOpacity>
+            );
+        })}
+    </View>
+
+    {
+        loading ? (
+            <ActivityIndicator size="large" color="#FFF" />
+        ) : (
+            <FlatList
+                data={filteredActivities}
+                renderItem={renderActivity}
+                keyExtractor={item => item.id}
+            />
+        )
+    }
+
+    {/* Modal de edição */ }
+    <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsModalVisible(false)}
+    >
+        <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Editar Atividade</Text>
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Título"
+                    placeholderTextColor="#999"
+                    value={editedActivity.titulo}
+                    onChangeText={(text) => setEditedActivity({ ...editedActivity, titulo: text })}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Data"
+                    placeholderTextColor="#999"
+                    value={editedActivity.data}
+                    onChangeText={(text) => setEditedActivity({ ...editedActivity, data: text })}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder="Descrição"
+                    placeholderTextColor="#999"
+                    value={editedActivity.descricao}
+                    onChangeText={(text) => setEditedActivity({ ...editedActivity, descricao: text })}
+                />
+
+                {/* Verifica se a atividade é agendada */}
+                {editedActivity.status === 'Agendada' && (
+                    <TouchableOpacity style={styles.completeButton} onPress={markAsCompleted}>
+                        <Text style={styles.completeButtonText}>Marcar como Concluída</Text>
+                    </TouchableOpacity>
+                )}
+
+                <View style={styles.modalButtons}>
+                    <TouchableOpacity style={styles.saveButton} onPress={saveEditedActivity}>
+                        <Text style={styles.saveButtonText}>Salvar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.cancelButton} onPress={() => setIsModalVisible(false)}>
+                        <Text style={styles.cancelButtonText}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteButton} onPress={deleteActivity}>
+                        <Text style={styles.deleteButtonText}>Excluir Atividade</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
+    </Modal>
+        </View >
     );
 };
 
